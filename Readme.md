@@ -56,7 +56,7 @@
    >
    >      默认用户名：ubuntu
    >      默认密码：ubuntu
-   <img src="images\2-4.png" alt="图2-4" style="zoom:50%;" />
+   > <img src="images\2-4.png" alt="图2-4" style="zoom:50%;" />
    >
    >   5. 换国内软件源
    >
