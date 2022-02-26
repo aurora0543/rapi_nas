@@ -56,7 +56,7 @@
    >
    >      默认用户名：ubuntu
    >      默认密码：ubuntu
-   > <img src="images\2-4.png" alt="图2-4" style="zoom:50%;" />
+   >   <img src="images\2-4.png" alt="图2-4" style="zoom:50%;" />
    >
    >   5. 换国内软件源
    >
@@ -204,36 +204,195 @@
 6. 配置家庭影音系统
 
    > * 配置SMB服务
+   >
+   >   nextcloud的网盘服务是使用webdav协议的，这种协议要使用MySQL数据库，肯定速度上拉跨，所以我打算使用samba做大文件传输，映射到电脑本地作为网盘使用。
+   >
+   >   1. 安装samba
+   >
+   >      ```bash
+   >      sudo apt install samba samba-common-bin
+   >      ```
+   >
+   >   2. 配置smb配置文件
+   >
+   >      ```bash
+   >      sudo vim /etc/samba/smb.conf
+   >      ```
+   >
+   >      smb.conf内容如下
+   >
+   >      ```bash
+   >      [data]
+   >          comment = external storage
+   >          read only = no
+   >          # 路径配置根据实际情况自行修改
+   >          path = /mnt/data/media
+   >          valid users = ubuntu www root
+   >          create mask = 0775
+   >          directory mask = 0775
+   >      ```
+   >
+   >      添加共享用户并设置密码
+   >
+   >      ```bash
+   >      sudo smbpasswd -a XXX
+   >      # XXX替换为用户名
+   >      ```
+   >
+   >   3. 重启服务
+   >
+   >      ```bash
+   >      sudo service smbd restart
+   >      ```
+   >
+   >      SMB服务的配置到此结束，后续我将讲解如何访问。
+   >
    > * 配置DLNA服务
-   > * 配置苹果Air Play音箱
+   >
+   >   ​	配置DLNA服务，让我们能够方便的在电视上播放网盘中的资料，这里我们室友miniDLNA软件完成配置。
+   >
+   >   1. 下载软件
+   >   2. 配置
+   >   3. 重启服务
 
 7. 配置离线下载器
 
-   > * 安装aria2
+   > * 安装及配置aria2
+   >
+   >   1. 安装aria2
+   >
+   >      ```bash
+   >      sudo apt install aria2
+   >      ```
+   >
+   >   2. 配置aria2.conf
+   >
+   >      ```bash
+   >      # 创建配置文件
+   >      sudo mkdir /etc/aria2
+   >      sudo vim /etc/aria2/aria2.conf
+   >      ```
+   >
+   >      ​	aria2.conf添加一下内容：
+   >
+   >      ```bash
+   >      # 保存目录根据实际情况设置
+   >      dir=/home/fangqi/aria2_download
+   >      disable-ipv6=true
+   >      # 打开rpc的目的是为了给web管理端用
+   >      enable-rpc=true
+   >      rpc-allow-origin-all=true
+   >      rpc-listen-all=true
+   >      rpc-listen-port=6800
+   >      continue=true
+   >      # 创建aria2.session文件用于断点续传
+   >      input-file=/etc/aria2/aria2.session
+   >      save-session=/etc/aria2/aria2.session
+   >      max-concurrent-downloads=3
+   >      ```
+   >
+   >      ​	创建aria2.session文件
+   >
+   >      ```bash
+   >      sudo touch /etc/aria2/aria2.session
+   >      # 授予可读写权限
+   >      sudo chmod 777 /etc/aria2/aria2.session
+   >      ```
+   >
+   >   3. 创建服务，实现开机自启
+   >
+   >      ​	这里我选择systemctl实现服务配置，配置方法相对直观简单。
+   >
+   >      ```bash
+   >      # 创建session文件 
+   >      cd /etc/systemd/system
+   >      sudo vim aria2.service
+   >      ```
+   >
+   >      ​	填写内容如下
+   >
+   >      ```shell
+   >      [Unit]
+   >      Description=Aria2 Service
+   >      After=network.target
+   >      [Service]
+   >      User= www
+   >      ExecStart=/usr/bin/aria2c --conf-path=/etc/aria2/aria2.conf
+   >      [Install]
+   >      WantedBy=default.target                     
+   >      ```
+   >
+   >      ​	启动服务
+   >
+   >      ```bash
+   >      sudo systemctl daemon-reload
+   >      sudo systemctl start aria2.service
+   >      # 查看服务状态是否正常
+   >      sudo systemctl status aria2.service
+   >      ```
+   >
+   >      ​	需要在宝塔面板中要放行6800端口才可以使用！！
+   >
    > * 配置aria2 web前端
+   >
+   >   ​	web前端用于管理aria2，通过图形化界面完成离线下载，我选择使用[ AriaNg](https://github.com/mayswind/AriaNg)完成配置。（当然web前端大家可以选择不用，可以使用chrome浏览器直接连接服务器完成离线下载任务）。
+   >
+   >   ​	从[AriaNg Realase](https://github.com/mayswind/AriaNg/releases)下载相应的源码,然后按照配置nextcloud的方法配置AriaNg站点。
 
 8. 安装Docker平台
 
    > * 使用脚本安装Docker
+   >
+   >   ​	安装Docker虚拟机之后，我们就方便的搭建Homeassistant了，至于我外什么不使用Docker安装nextcloud，因为使用Docker的话速文件传输度会大打折扣，这是我不能接收的，所以我直接在实体机上配置的nextcloud。但是Homeassistant不需要多么强大的性能，只要能程序跑就行了，所以我直接使用docker部署Homeassistant。
+   >
+   >   ​	Docker安装可以使用一键安装脚本，非常方便。
+   >
+   >   ```bash
+   >   curl -fsSL https://get.docker.com | bash -s docker --mirror Aliyun
+   >   ```
+   >
+   > * 更改国内源
+   >
+   >   Docker官方镜像在国内出奇的慢，这是我无法忍受的，索性直接更换为国内源。
+   >
+   >   ```bash
+   >   # 修改daemon.json文件，没有的话就新建一个
+   >   sudo vim /etc/docker/daemon.json
+   >   # 添加如下内容
+   >   {
+   >     "registry-mirrors": ["https://docker.mirrors.ustc.edu.cn"]
+   >   }
+   >   # 重启Docker让配置生效
+   >   sudo systemctl daemon-reload
+   >   
+   >   sudo service docker restart
+   >   ```
+   >
    > * 配置Portainer容器
+   >
+   >   ​	虽然我们完成了Docker的安装，但是Docker是没有图形化界面来管理的。为了方便的管理Docker，我们要先安装Portainer容器用于方便的管理Docker虚拟机。
+   >
+   >   ```bash
+   >   # 从云端拉取镜像到本地
+   >   # portainer已经被弃用，新版开始区分商业版和个人版，个人版为portainer-ce
+   >   sudo docker pull portainer/portainer-ce
+   >   # 创建并启动容器
+   >   sudo docker run -d -p 8080:9000 --restart=always -v /var/run/docker.sock:/var/run/docker.sock --name prtainer  portainer/portainer-ce
+   >   # 8080:9000是把9000的内部端口映射到8080上，所以我们要从8080端口访问portainer，此处可以根据实际情况修改
+   >   ```
+   >
+   >   ​    现在我们可以通过浏览器访问portainer了，在浏览器输入：192.168.XX.XX:8080来访问portainer管理平台。
+   >
+   >   <img src="images\8-1.png" style="zoom:38%;" />
 
 9. 安装Homeassistant
 
-   > * 使用脚本安装Homeassistant+Supervisor
+   > * 安装Homeassistant+Supervisor
    > * 解决国内无法联网问题
    > * 配置Homeassistant与米家等平台的互联
 
 10. 系统的一些个性化设置
 
-    > * 终端美化
-    >
-    >   1. 安装zsh
-    >   2. 安装oh-my-zsh
-    >   3. 安装插件
-    >   4. 安装主题
-    >
-    > * 编辑SSH连接提示语
-    >
     > * 关于固定树莓派的ip地址
     >
     >   1.方法一，路由器配置
